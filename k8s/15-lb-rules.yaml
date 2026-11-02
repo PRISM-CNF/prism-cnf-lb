@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nse-ovs-lb-rules
+  namespace: nse-ovs-lb
+data:
+  rules.yaml: |
+    mode: static_one_to_one
+    vip: 172.16.4.10
+    backend_ip: 172.16.4.100

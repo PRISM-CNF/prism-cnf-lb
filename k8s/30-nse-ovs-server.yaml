@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nse-ovs-server
+  namespace: nse-ovs-lb
+  labels:
+    app: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+        "spiffe.io/spiffe-id": "true"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node01
+      containers:
+        - name: server
+          image: zihaocnic/nse-ovs-server:20260326-880951a
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5201
+              name: iperf3
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSM_NAME
+              value: "$(POD_NAME)"
+            - name: NSM_CIDR_PREFIX
+              value: 172.16.4.100/31
+            - name: NSM_SERVICE_NAMES
+              value: nse-ovs-lb
+            - name: NSM_REGISTER_SERVICE
+              value: "false"
+            - name: NSM_LABELS
+              value: "app:server"
+            - name: NSM_LOG_LEVEL
+              value: INFO
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+            - name: IPERF3_PORT
+              value: "5201"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+              readOnly: true
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate

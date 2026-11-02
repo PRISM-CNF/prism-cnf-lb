@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nsc-ovs-client
+  namespace: nse-ovs-lb
+  labels:
+    app: nsc-ovs-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nsc-ovs-client
+  template:
+    metadata:
+      labels:
+        app: nsc-ovs-client
+        "spiffe.io/spiffe-id": "true"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node01
+      initContainers:
+        - name: cmd-nsc-init
+          image: ghcr.io/networkservicemesh/ci/cmd-nsc-init:633e06d
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_LOG_LEVEL
+              value: TRACE
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: NSM_NETWORK_SERVICES
+              value: kernel://nse-ovs-lb/nsm-1
+            - name: NSM_NAME
+              value: "$(POD_NAME)-$(POD_UID)"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+              readOnly: true
+      containers:
+        - name: client
+          image: zihaocnic/nsc-ovs-client:20260326-a102b36
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+        - name: cmd-nsc
+          image: ghcr.io/networkservicemesh/ci/cmd-nsc:21c6fa9
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NSM_LOG_LEVEL
+              value: TRACE
+            - name: NSM_LIVENESS_CHECK_ENABLED
+              value: "false"
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: NSM_NETWORK_SERVICES
+              value: kernel://nse-ovs-lb/nsm-1
+            - name: NSM_NAME
+              value: "$(POD_NAME)-$(POD_UID)"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+              readOnly: true
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: Directory

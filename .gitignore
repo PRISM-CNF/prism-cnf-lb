@@ -1,0 +1,33 @@
+# Local tools and instructions
+.DS_Store
+.idea/
+.vscode/
+.codex/
+.claude/
+.deepseek/
+AGENTS.md
+CLAUDE.md
+*.swp
+
+# Generated files
+build/
+dist/
+out/
+*.o
+*.a
+*.so
+*.test
+*.out
+__pycache__/
+*.pyc
+state/
+generated/
+artifacts/
+result/
+raw-data/
+
+# Operator-specific files
+config/cluster.env
+config/paths.env
+*.key
+*.pem

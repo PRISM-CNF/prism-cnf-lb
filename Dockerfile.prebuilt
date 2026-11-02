@@ -1,0 +1,5 @@
+FROM alpine:3.20
+
+COPY nse-ovs-lb /bin/nse-ovs-lb
+
+ENTRYPOINT ["/bin/nse-ovs-lb"]

@@ -1,0 +1,16 @@
+apiVersion: networkservicemesh.io/v1
+kind: NetworkService
+metadata:
+  name: nse-ovs-lb
+  namespace: nse-ovs-lb
+spec:
+  payload: ETHERNET
+  matches:
+    - source_selector:
+        app: lb
+      routes:
+        - destination_selector:
+            app: server
+    - routes:
+        - destination_selector:
+            app: lb

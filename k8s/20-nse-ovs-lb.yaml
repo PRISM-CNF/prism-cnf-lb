@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nse-ovs-lb
+  namespace: nse-ovs-lb
+  labels:
+    app: nse-ovs-lb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nse-ovs-lb
+  template:
+    metadata:
+      labels:
+        app: nse-ovs-lb
+        "spiffe.io/spiffe-id": "true"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node01
+      containers:
+        - name: nse
+          image: zihaocnic/nse-ovs-lb:20260401-6751b85
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///run/spire/sockets/agent.sock
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NSM_NAME
+              value: "$(POD_NAME)"
+            - name: NSM_SERVICE_NAME
+              value: nse-ovs-lb
+            - name: NSM_LABELS
+              value: "app:lb"
+            - name: NSM_LB_RULES_PATH
+              value: /etc/nse-lb/rules.yaml
+            - name: NSM_LB_RULE_POLL_INTERVAL
+              value: 2s
+            - name: NSM_LOG_LEVEL
+              value: TRACE
+            - name: NSM_CONNECT_TO
+              value: unix:///var/lib/networkservicemesh/nsm.io.sock
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
+            - name: nsm-socket
+              mountPath: /var/lib/networkservicemesh
+              readOnly: true
+            - name: lb-rules
+              mountPath: /etc/nse-lb
+              readOnly: true
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
+        - name: nsm-socket
+          hostPath:
+            path: /var/lib/networkservicemesh
+            type: DirectoryOrCreate
+        - name: lb-rules
+          configMap:
+            name: nse-ovs-lb-rules
+            items:
+              - key: rules.yaml
+                path: rules.yaml
